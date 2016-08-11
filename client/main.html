@@ -1,0 +1,84 @@
+<head>
+  <title>blackscholes</title>
+</head>
+
+<body>
+  <div class="jumbotron">
+    <h1>Black-Scholes option spread analyzer</h1>
+  </div>
+	
+  <div class="container">
+	<form class="parameters-form">
+	  <div class="panel panel-primary">
+		<div class="panel-body">
+		  <div class="col-xs-6 col-md-4 parameter">
+		    <h5>Curr. underlying price</h5>
+		    <input type="number" name="current-price-input" min="0" step="0.01">
+		  </div>
+		  <div class="col-xs-6 col-md-4 parameter">
+		    <h5>Curr. IV</h5>
+		    <input type="number" name="current-iv-input" min="0" step="0.01">
+		  </div>
+		  <div class="col-xs-6 col-md-4 parameter">
+		    <h5>Risk free rate</h5>
+		    <input type="number" name="current-r-input" min="0" step="0.01" value="0.27"> <!-- https://ycharts.com/indicators/3_month_t_bill -->
+		  </div>
+		</div>
+	  </div>
+	  <div class="panel panel-primary">
+	    <div class="panel-heading">
+	      <h4>Near-term option:</h4>
+		</div>
+		<div class="panel-body">
+		  <div class="col-xs-6 col-md-4 parameter">
+		    <h5>Strike</h5>
+		    <input type="number" name="near-term-opt-strike" min="0" step="0.01">
+		  </div>
+		  <div class="col-xs-6 col-md-4 parameter">
+		    <h5>Expiry</h5>
+		    <input type="date" name="near-term-opt-expiry">
+		  </div>
+		  <div class="col-xs-6 col-md-4 parameter">
+		    <h5>Right</h5>
+		    <input list="near-term-rights" name="near-term-opt-right">
+		    <datalist id="near-term-rights">
+		      <option value="call"></option>
+			  <option value="put"></option>
+		    </datalist>
+		  </div>
+		</div>
+	  </div>
+	  <div class="panel panel-primary">
+	    <div class="panel-heading">
+	      <h4>Next-term option:</h4>
+		</div>
+		<div class="panel-body">
+		  <div class="col-xs-6 col-md-4 parameter">
+		    <h5>Strike</h5>
+		    <input type="number" name="next-term-opt-strike" min="0" step="0.01">
+		  </div>
+		  <div class="col-xs-6 col-md-4 parameter">
+		    <h5>Expiry</h5>
+		    <input type="date" name="next-term-opt-expiry">
+		  </div>
+		  <div class="col-xs-6 col-md-4 parameter">
+		    <h5>Right</h5>
+		    <input list="next-term-rights" name="next-term-opt-right">
+		    <datalist id="next-term-rights">
+		      <option value="call"></option>
+			  <option value="put"></option>
+		    </datalist>
+		  </div>
+		</div>
+	  </div>
+	</form>
+  </div>
+  
+  {{> chart}}
+</body>
+
+<template name="chart">
+  <div id="riskGraph">
+    <svg style="height:500px;width:1000px"/>
+  </div>
+</template>
