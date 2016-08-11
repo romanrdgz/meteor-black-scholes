@@ -27,7 +27,8 @@ Template.body.events({
 		// Prevent default browser form submit
 		event.preventDefault();
 		
-		var value = event.target.value
+		var value = event.target.value;
+		var x_values = [];
 		// Update value if not empty and if it has changed
 		if(value != null && value != ""){
 			switch(event.target.name){
@@ -35,7 +36,8 @@ Template.body.events({
 					if(!Session.equals("curr_price", value)){
 						Session.set("curr_price", value);
 						// Update x values to cover 15% at each side of current underlying price
-						Dataseries.update({_id: "x_values"}, {$set: {data: range(value*0.85, value*1.15, 201)}})
+						x_values = range(value*0.85, value*1.15, 201)
+						Dataseries.update({_id: "x_values"}, {$set: {data: x_values}})
 					}
 					break;
 				case "current-iv-input":
@@ -85,52 +87,54 @@ Template.body.events({
 		}
 		
 		// Assign values
-		this.curr_price = Session.get("curr_price");
-		this.curr_iv = Session.get("curr_iv");
-		this.curr_r = Session.get("curr_r");
-		this.nearTermOptStrike = Session.get("nearTermOptStrike");
-		this.nearTermOptExpiry = Session.get("nearTermOptExpiry");
-		this.nearTermOptRight = Session.get("nearTermOptRight");
-		this.nextTermOptStrike = Session.get("nextTermOptStrike");
-		this.nextTermOptExpiry = Session.get("nextTermOptExpiry");
-		this.nextTermOptRight = Session.get("nextTermOptRight");
+		var curr_price = Session.get("curr_price");
+		var curr_iv = Session.get("curr_iv");
+		var curr_r = Session.get("curr_r") * 1.0 / 100;
+		var nearTermOptStrike = Session.get("nearTermOptStrike");
+		var nearTermOptExpiry = Session.get("nearTermOptExpiry");
+		var nearTermOptRight = Session.get("nearTermOptRight");
+		var nextTermOptStrike = Session.get("nextTermOptStrike");
+		var nextTermOptExpiry = Session.get("nextTermOptExpiry");
+		var nextTermOptRight = Session.get("nextTermOptRight");
 		
 		// Check that all the data has been filled
-		if(this.curr_price && this.curr_iv && this.curr_r && this.nearTermOptStrike && this.nearTermOptExpiry &&
-		   this.nearTermOptRight && this.nextTermOptStrike && this.nextTermOptExpiry && this.nextTermOptRight){
+		if(curr_price && curr_iv && curr_r && nearTermOptStrike && nearTermOptExpiry &&
+		   nearTermOptRight && nextTermOptStrike && nextTermOptExpiry && nextTermOptRight){
 			console.log("all data has been filled");
 
 			// Update options list
-			var options = []
-			options.push(new Option(this.nearTermOptStrike, this.nearTermOptExpiry, this.nearTermOptRight, this.curr_price))
-			options.push(new Option(this.nextTermOptStrike, this.nextTermOptExpiry, this.nextTermOptRight, this.curr_price))
+			var options = [];
+			options.push(new Option(nearTermOptStrike, nearTermOptExpiry, nearTermOptRight, curr_price));
+			options.push(new Option(nextTermOptStrike, nextTermOptExpiry, nextTermOptRight, curr_price));
 			
 			// Update dates list
-			var dates = []
+			var dates = [];
 			dates.push(new Date()); // Today
-			dates.push(this.nearTermOptExpiry);
+			dates.push(nearTermOptExpiry);
+			console.log(dates);
 
 			// Get each curve, recalculate its values, and update into the collection
-			for(plot_date in this.dates){
-				y_values = []
+			for(plot_date in dates){
+				var y_values = [];
 				for(x in x_values){
-					opt_sum = 0
+					var opt_sum = 0;
 					for(opt in options){
 						var t = daydiff(expiry, plot_date) / 251 // (251 trading days per year)
-						opt_sum += blackScholes(this.curr_price, opt.strike, t, this.curr_iv, this.curr_r, opt.right);
+						console.log("t = " + t + " (years)");
+						opt_sum += blackScholes(curr_price, opt.strike, t, curr_iv, curr_r, opt.right);
 					}
-					y_values.push(opt_sum)
+					y_values.push(opt_sum);
 				}
 				
 				console.log("Y: " + y_values);
 				
 				// Update the curves
-				if(this.nearTermOptExpiry == plot_date){
+				if(nearTermOptExpiry == plot_date){
 					// Update expiration curve
-					Dataseries.update({_id: "y_exp_values"}, {$set: {data: y_values}})
+					Dataseries.update({_id: "y_exp_values"}, {$set: {data: y_values}});
 				} 
 				else{
-				Dataseries.update({_id: "y_var_t_values"}, {$set: {data: y_values}})
+					Dataseries.update({_id: "y_var_t_values"}, {$set: {data: y_values}});
 				}
 			}
 		}
@@ -143,19 +147,19 @@ Template.chart.onRendered(function() {
 	this.autorun(function () {
 		myData = [
 			{
-			  values: [{x: Dataseries.find({_id: "x_values"}, {data: 1}).fetch()[0].data, y: Dataseries.find({_id: "y_var_t_values"}, {data: 1}).fetch()[0].data}],
+			  values: [{x: Dataseries.findOne("x_values").data, y: Dataseries.findOne("y_var_t_values").data}],
 			  key: 'Today',
 			  color: '#ff7f0e'
 			},
 			{
-			  values: [{x: Dataseries.find({_id: "x_values"}, {data: 1}).fetch()[0].data, y: Dataseries.find({_id: "y_exp_values"}, {data: 1}).fetch()[0].data}],
+			  values: [{x: Dataseries.findOne("x_values").data, y: Dataseries.findOne("y_exp_values").data}],
 			  key: 'At expiration',
 			  color: '#2ca02c'
 			}
 		];
 		
-		console.log(Dataseries.find({_id: "x_values"}, {data: 1}).fetch()[0].data)
-		console.log(Dataseries.find({_id: "y_var_t_values"}, {data: 1}).fetch()[0].data)
+		console.log(Dataseries.findOne("x_values").data);
+		console.log(Dataseries.findOne("y_var_t_values").data);
 		
 		if(chart != undefined){
 			d3.select('#riskGraph svg')
@@ -200,16 +204,16 @@ function range(start, stop, n) {
         start = 0;
     }
 
-    if (typeof step == 'undefined') {
-        step = 1;
+    if (typeof n == 'undefined') {
+        step = 100;
     }
 
-    if ((step > 0 && start >= stop) || (step < 0 && start <= stop)) {
+    if ((n < 0) || (start >= stop)) {
         return [];
     }
 
     var result = [];
-	step = (stop - start) / (n-1);
+	var step = (stop - start) / (n - 1);
     for (var i = start; step > 0 ? i < stop : i > stop; i += step) {
         result.push(i);
     }
